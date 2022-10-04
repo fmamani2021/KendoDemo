@@ -1,0 +1,133 @@
+﻿@{
+    ViewBag.Title = "About";
+}
+<div id="view_about">
+    <form>
+        <div class="row">
+            <div class="form-group col-xs-3">
+                <label>Name</label>
+                <input id="name" type="text"
+                       class="form-control"
+                       placeholder="Enter Name"
+                       data-bind="value: person.Name">
+            </div>
+            <div class="form-group col-xs-3">
+                <label>Last Name</label>
+                <input type="text" class="form-control" placeholder="Password"
+                       data-bind="value: person.LastName">
+            </div>
+
+            <div class="form-group col-xs-3">
+                <label>Rol</label>
+                <div class="form-control"
+                     style="width: 100%"
+                     data-role="dropdownlist"
+                     data-bind="value: person.RolId,
+                         source: rol.dataSource,
+                         events: {close: rol.onClose }"
+                     data-value-field="Id"
+                     data-text-field="Description"
+                     data-value-primitive="true"
+                     data-option-label=" ">
+                </div>
+            </div>
+
+            <div class="form-group col-xs-3">
+                <label>Country</label>
+                <input style="width: 100%"
+                       data-role="autocomplete"
+                       data-min-length="3"
+                       data-enforce-min-length="true"
+                       data-text-field="Description"
+                       data-filter="contains"
+                       data-bind="value: country.selectedModel,
+                           source: country.dataSource,
+                           events: { change: country.onChange },
+                           enabled: country.isEnabled" />
+            </div>
+
+        </div>
+    </form>
+</div>
+<script>
+
+    var countriesUrl = '@Url.Action("GetCountries", "Home")';
+
+
+    var newPersonModel = {
+        Name: "",
+        LastName: "",
+        RolId: null,
+        CountryId : null,
+        Active: true
+    }
+
+    var listRoles = [
+        { Id: 1, Code: 'SUP', Description: "Supervisor" },
+        { Id: 2, Code: 'ADM', Description: "Admin" }
+    ];
+
+    $(document).ready(function () {
+
+        viewModel = new kendo.observable({
+            person: newPersonModel,
+            rol: {
+                dataSource: listRoles,
+                onClose: function () {
+                    console.log("close dropdownlist rol");
+                }
+            },
+            country: {
+                selectedModel: null,
+                dataSource: SourceAutocomplete(countriesUrl, {}),
+                onChange: function (event, countryModel) {
+                    if (event && event.preventDefault)
+                        event.preventDefault();
+
+                    if (viewModel.country.selectedModel && viewModel.country.selectedModel.Id) {
+                        viewModel.person.set("CountryId", viewModel.country.selectedModel.Id);
+                        return;
+                    }
+                    viewModel.person.set("CountryId", null);
+                    viewModel.country.set('selectedModel', null);
+                },
+                isEnabled: function () {
+                    return viewModel.person.get("Name").length > 0;
+                }
+            },
+        });
+
+        kendo.bind($("#view_about"), viewModel);
+    });
+
+    function SourceAutocomplete(url, filter) {
+        var FilterSource = new kendo.data.DataSource({
+            suggest: true,
+            serverFiltering: true,
+            serverPaging: true,
+            pageSize: 100,
+            transport: {
+                type: "json",
+                read: url,
+                cache: false,
+                parameterMap: function (data, type) {
+                    if (data.filter != null) {
+                        if (data.filter.filters != null && data.filter.filters.length > 0) {
+                            if (filter)
+                                filter.criteria = data.filter.filters[0].value;
+                            else {
+                                filter = { criteria: data.filter.filters[0].value };
+                            }
+                        }
+                    }
+                    return filter;
+                }
+            }
+        });
+        return FilterSource;
+    }
+
+
+</script>
+
+
