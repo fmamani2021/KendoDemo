@@ -1,7 +1,26 @@
-﻿@{
+﻿@model WebAppkendo.Models.PersonViewModel
+@using Newtonsoft.Json
+@{
     ViewBag.Title = "About";
 }
-<div id="view_about">
+<div id="view_about" class="row">
+    <br />
+
+    <div class="form-inline">
+        <div class="form-group">
+            <input type="button" data-role="button" value="New"
+                   data-bind="events: { click: actions.onNew }" />
+        </div>
+        <div class="form-group">
+            <input type="button" data-role="button" value="Create"
+                   data-bind="events: { click: actions.onCreate }" />
+        </div>
+        <div class="form-group">
+            <input type="button" data-role="button" value="Update"
+                   data-bind="events: { click: actions.onEdit }" />
+        </div>
+    </div>
+
     <form>
         <div class="row">
             <div class="form-group col-xs-3">
@@ -19,7 +38,7 @@
 
             <div class="form-group col-xs-3">
                 <label>Rol</label>
-                <div class="form-control"
+                <div id="rolIdDOM" class="form-control"
                      style="width: 100%"
                      data-role="dropdownlist"
                      data-bind="value: person.RolId,
@@ -36,7 +55,7 @@
                 <label>Country</label>
                 <input style="width: 100%"
                        data-role="autocomplete"
-                       data-min-length="3"
+                       data-min-length="2"
                        data-enforce-min-length="true"
                        data-text-field="Description"
                        data-filter="contains"
@@ -47,30 +66,86 @@
             </div>
 
         </div>
+
+        <div class="row">
+
+            <div class="form-group col-xs-3" data-bind="visible: expiredate.isVisible">
+                <label>Expire Date</label>
+                <input style="width: 100%" data-role="datepicker"
+                       data-bind="  value: person.ExpireDate,
+                                    events: { change: expiredate.onChange }">
+            </div>
+
+            <div class="form-group col-xs-3">
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" data-bind="checked : person.Active"> Is Active
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
     </form>
+
+    <div class="row">
+
+        <div class="form-group col-xs-12">
+            <div id="person_grid"
+                 data-role="grid"
+                 data-bind="source: grid.dataSource, events:{ dataBound: grid.gridDataBound }"
+                 data-scrollable="true"
+                 data-auto-bind="false"
+                 data-column="true"
+                 data-navigatable="true"                 
+                 data-selectable="false"
+                 data-pageable="{pageSizes: [10, 20, 25]}"
+                 data-sortable="false"
+                 data-resizable="true"
+                 data-columns='[
+                        { "field": "Name", "title": "First Name", "width": "100px"  },
+                        { "field": "LastName", "title": "Last Name", "width": "100px"  },
+                        { "field": "ExpireDate", "title": "Expire Date", format: "{0:MM/dd/yyyy}",  "width": "100px"  },
+                        { "field": "CreatedDate", "title": "Created Date", format: "{0:MM/dd/yyyy}",  "width": "100px"  },
+                        { "title": "Rol", "width": "100px",
+                            "template":kendo.template($("#rolTemplate").html()),
+                        },
+                        { "field": "CountryDescription", "title": "Country", "width": "100px"  },
+                        { "field": "Active", "title": "Active", "width": "100px"  },
+
+                        { "title": "", "width": "200px",
+                            "template":kendo.template($("#buttonActionsTemplate").html()),
+                            "attributes": { "style": "text-align: center;" }
+                        }
+                    ]'>
+            </div>
+        </div>
+
+    </div>
+
+
+
+
+
 </div>
 <script>
 
+    var searchUrl = '@Url.Action("Search", "Home")';
+    var findUrl = '@Url.Action("Find", "Home")';
+    var createUrl = '@Url.Action("Create", "Home")';
+    var updateUrl = '@Url.Action("Update", "Home")';
+    var deleteUrl = '@Url.Action("Delete", "Home")';
+
     var countriesUrl = '@Url.Action("GetCountries", "Home")';
 
+    var newPersonModel = @(Html.Raw(JsonConvert.SerializeObject(Model.Person)));
+    var listRoles = @(Html.Raw(JsonConvert.SerializeObject(Model.Roles)));
 
-    var newPersonModel = {
-        Name: "",
-        LastName: "",
-        RolId: null,
-        CountryId : null,
-        Active: true
-    }
-
-    var listRoles = [
-        { Id: 1, Code: 'SUP', Description: "Supervisor" },
-        { Id: 2, Code: 'ADM', Description: "Admin" }
-    ];
-
+    var viewModel;
     $(document).ready(function () {
 
         viewModel = new kendo.observable({
-            person: newPersonModel,
+            person: { ...newPersonModel },
             rol: {
                 dataSource: listRoles,
                 onClose: function () {
@@ -79,7 +154,7 @@
             },
             country: {
                 selectedModel: null,
-                dataSource: SourceAutocomplete(countriesUrl, {}),
+                dataSource: SourceAutocomplete(countriesUrl, { id : 1 , nombre : 'juan'}),
                 onChange: function (event, countryModel) {
                     if (event && event.preventDefault)
                         event.preventDefault();
@@ -95,6 +170,89 @@
                     return viewModel.person.get("Name").length > 0;
                 }
             },
+            expiredate: {
+                isVisible: function () {
+                    return viewModel.person.get("LastName").length > 0;
+                },
+                onChange: function () {
+                    console.log("onChange expiredate");
+                }
+            },
+            grid: {
+                modelSchema: {
+                    fields: {
+                        Name: { type: 'string' },
+                        LastName: { type: 'string' },
+                        Active: { type: "boolean" },
+                        ExpireDate: { type: 'Date' },
+                        CreatedDate: { type: 'Date' }
+                    }
+                },
+                dataSource: new kendo.data.DataSource({
+                    data: [],
+                    pageSize: 10
+                }),
+                onSearch: function (event) {
+                    if (event && event.preventDefault)
+                        event.preventDefault();
+
+                    //var searchData = JSON.stringify(self.viewModel.person);
+                    var newDS = SetGridDataSourceAsync(searchUrl,
+                        null,
+                        viewModel.grid.modelSchema.toJSON(),
+                        true,
+                        null,
+                        null,
+                        null,
+                        viewModel.grid.onCompleteSearch()
+                    );
+                    viewModel.grid.set("dataSource", newDS);
+                    viewModel.grid.dataSource.page(1);
+                    viewModel.actions.onClean();
+                },
+                onCompleteSearch: function () {
+                    return function (data, status) {
+                        switch (status) {
+                            case 'success':
+
+                                break;
+                            case 'parsererror':
+                            case 'error':
+                                alertify.error("Internal Server error in Search");
+                                break;
+                            case 'timeout':
+                                alertify.error("Timeout error in Search");
+                                break;
+                        }
+                    };
+                },
+                onClean() {
+                    viewModel.grid.set('dataSource', new kendo.data.DataSource({
+                        data: [],
+                        pageSize: 10
+                    }));
+                    viewModel.grid.dataSource.page(1);
+                },
+                gridDataBound: function () {
+                    console.log("gridDataBound");
+                }
+            },
+            actions: {
+                onCreate: function () {
+                    var req = AjaxParamsActionPostPromiseAsync(createUrl, viewModel.person, null);
+                    req.done(function (response) {
+                        alertify.success("Record was saved successfully.");
+                        viewModel.grid.onSearch();
+                    }).fail(viewModel.actions.transacionalServiceErrorCallback);
+                },
+                onClean: function () {
+                    if (event && event.preventDefault)
+                        event.preventDefault();
+
+                    viewModel.set('person', { ...newPersonModel });
+                    viewModel.country.set('selectedModel', null);
+                },
+            }
         });
 
         kendo.bind($("#view_about"), viewModel);
@@ -127,7 +285,111 @@
         return FilterSource;
     }
 
+    function SetGridDataSourceAsync(
+        url,
+        criteria,
+        modelSchema,
+        serverPaging,
+        requestStartCallback,
+        requestEndCallback,
+        changeCallback,
+        completeCallback,
+        pageSize) {
+        var ds = new kendo.data.DataSource({
+            transport: {
+                read: {
+                    url: url,
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    complete: function (data, status) {
+                        if (completeCallback)
+                            completeCallback(data, status);
+                    }
+                },
+                parameterMap: function (options) {
+                    var filter = Object.assign({ parameters: options }, criteria);
+                    return JSON.stringify(filter);
+                }
+            },
+            schema: { data: "data", total: "total", model: modelSchema },
+            pageSize: pageSize ? pageSize : 10,
+            serverPaging: serverPaging,
+            requestStart: function (e) {
+                if (requestStartCallback)
+                    requestStartCallback(e);
+            },
+            requestEnd: function (e) {
+                if (requestEndCallback)
+                    requestEndCallback(e);
+            },
+            change: function (data) {
+                if (changeCallback)
+                    changeCallback(data);
+            }
+        });
+        return ds;
+    }
+
+    function AjaxParamsActionPostPromiseAsync(url, params, beforeSendCallback, async) {
+        return $.ajax({
+            type: "POST",
+            url: url,
+            dataType: 'json',
+            data: JSON.stringify(params),
+            async: !async,
+            beforeSend: beforeSendCallback
+        });
+    }
+
+    function AjaxParamsActionGetPromiseAsync(url, beforeSendCallback, async) {
+        return $.ajax({
+            type: "GET",
+            url: url,
+            contentType: 'application/json',
+            async: !async,
+            beforeSend: beforeSendCallback
+        });
+    }
 
 </script>
 
+<script id="buttonActionsTemplate" type="text/x-kendo-template">
+    <div class="row">
+        <div class="col-xs-2">
+            <input  type="button"
+                value="Edit"
+                data-role="button"
+                data-icon="edit"
+                data-bind="events: { click: actions.onEditSelected }"
+                style="width: 50px" />
+        </div>
+        #
+        var rol = listRoles.filter(p => p.Id == RolId)[0];
+        if(rol && rol.Code && rol.Code != 'ADM'){
+        #
+        <div class="col-xs-2">
+            <input  type="button"
+                value="Delete"
+                data-role="button"
+                data-icon="edit"
+                data-bind="events: { click: actions.onDelete }"
+                style="width: 50px" />
+        </div>
+        # } #
+    </div>
+
+</script>
+
+<script id="rolTemplate" type="text/x-kendo-template">
+    #
+    var rol = listRoles.filter(p => p.Id == data.RolId)[0];
+    //console.log(rol)
+    //debugger;
+    if(rol){
+    #
+        <label>#= rol.Description #</label>
+    #
+    }
+    #
+</script>
 
