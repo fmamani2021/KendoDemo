@@ -373,6 +373,7 @@
     <Content Include="Content\kendo\images\kendoui.woff" />
     <Content Include="Scripts\alertify\js\alertify.min.js.map" />
     <None Include="Scripts\jquery-3.4.1.intellisense.js" />
+    <Content Include="Scripts\common-functions.js" />
     <Content Include="Scripts\jquery-3.4.1.js" />
     <Content Include="Scripts\jquery-3.4.1.min.js" />
     <Content Include="Scripts\jquery-3.4.1.slim.js" />
@@ -1290,6 +1291,9 @@
     <Content Include="Scripts\kendo\messages\kendo.messages.zh-TW.min.js" />
     <Content Include="Scripts\kendo\pako_deflate.min.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
+    <EmbeddedResource Include="Scripts\Application\AboutMaintenance.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
